@@ -235,3 +235,81 @@ class CommandController:
         self.data_manager.save_data()
         
         return node.to_dict()
+    
+    # ========== Duplicate Operations ==========
+    
+    def duplicate_node(self, node_id: str) -> Dict[str, Any]:
+        """
+        Duplicate a node (creates a copy in the same parent)
+        
+        Args:
+            node_id: ID of node to duplicate
+        
+        Returns:
+            Duplicated node information
+        """
+        node = self.data_manager.find_node_by_id(node_id)
+        if not node:
+            raise ValueError(f"Node does not exist: {node_id}")
+        
+        # Find parent node
+        parent = None
+        all_nodes = self.data_manager.get_all_nodes()
+        for n in all_nodes:
+            if n.is_folder() and any(child.id == node_id for child in n.children):
+                parent = n
+                break
+        
+        if not parent:
+            raise ValueError("Cannot find parent node")
+        
+        # Create duplicate with modified name
+        duplicate_name = f"{node.name} (Copy)"
+        
+        if node.is_folder():
+            new_node = CommandNode(
+                name=duplicate_name,
+                node_type="folder",
+                description=node.description
+            )
+            # Recursively copy children
+            for child in node.children:
+                self._duplicate_child(child, new_node)
+        else:
+            new_node = CommandNode(
+                name=duplicate_name,
+                node_type="command",
+                content=node.content,
+                description=node.description
+            )
+        
+        parent.add_child(new_node)
+        self.data_manager.save_data()
+        
+        return new_node.to_dict()
+    
+    def _duplicate_child(self, child: CommandNode, parent: CommandNode) -> None:
+        """
+        Helper method to recursively duplicate child nodes
+        
+        Args:
+            child: Child node to duplicate
+            parent: Parent node to add to
+        """
+        if child.is_folder():
+            new_child = CommandNode(
+                name=child.name,
+                node_type="folder",
+                description=child.description
+            )
+            for grandchild in child.children:
+                self._duplicate_child(grandchild, new_child)
+        else:
+            new_child = CommandNode(
+                name=child.name,
+                node_type="command",
+                content=child.content,
+                description=child.description
+            )
+        
+        parent.add_child(new_child)

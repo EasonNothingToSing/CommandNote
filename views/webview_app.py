@@ -67,6 +67,13 @@ class WebViewApp:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    def duplicate_node(self, node_id):
+        """Duplicate node"""
+        try:
+            return {"success": True, "data": self.controller.duplicate_node(node_id)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
     # ========== Application Startup ==========
     
     def run(self):

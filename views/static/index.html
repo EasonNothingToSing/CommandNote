@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CommandNote - 命令笔记工具</title>
+    <title>CommandNote - Command Note Tool</title>
+    <link rel="icon" type="image/png" href="command.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,34 +12,36 @@
         <!-- 左侧树状导航 -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>📁 命令分类</h2>
-                <button id="addFolderBtn" class="btn btn-primary">+ 新建目录</button>
+                <h2>📁 Commands</h2>
+                <button id="addFolderBtn" class="btn btn-primary">+ New Folder</button>
             </div>
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="搜索命令..." />
+                <input type="text" id="searchInput" placeholder="Search commands..." />
                 <button id="searchBtn">🔍</button>
             </div>
             <div id="treeView" class="tree-view">
-                <!-- 树状结构将在这里动态生成 -->
+                <!-- Tree structure will be generated here -->
             </div>
         </aside>
 
         <!-- 右侧内容区域 -->
         <main class="main-content">
             <div class="content-header">
-                <h1 id="contentTitle">欢迎使用 CommandNote</h1>
+                <h1 id="contentTitle">Welcome to CommandNote</h1>
                 <div class="action-buttons">
-                    <button id="addCommandBtn" class="btn btn-success">+ 新建命令</button>
-                    <button id="editBtn" class="btn btn-warning" style="display:none;">✏️ 编辑</button>
-                    <button id="deleteBtn" class="btn btn-danger" style="display:none;">🗑️ 删除</button>
+                    <button id="addCommandBtn" class="btn btn-success">+ New Command</button>
+                    <button id="getBtn" class="btn btn-info" style="display:none;">📋 Get</button>
+                    <button id="duplicateBtn" class="btn btn-secondary" style="display:none;">📑 Duplicate</button>
+                    <button id="editBtn" class="btn btn-warning" style="display:none;">✏️ Edit</button>
+                    <button id="deleteBtn" class="btn btn-danger" style="display:none;">🗑️ Delete</button>
                 </div>
             </div>
             
             <div id="contentArea" class="content-area">
                 <div class="welcome-message">
-                    <h2>👋 开始使用</h2>
-                    <p>在左侧创建目录来组织你的命令，支持多级嵌套结构。</p>
-                    <p>点击目录可以查看其中的命令，点击命令可以查看详情。</p>
+                    <h2>👋 Get Started</h2>
+                    <p>Create folders on the left to organize your commands with nested structure support.</p>
+                    <p>Click a folder to view its contents, click a command to view details.</p>
                 </div>
             </div>
         </main>
@@ -48,19 +51,19 @@
     <div id="folderModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2 id="folderModalTitle">新建目录</h2>
+            <h2 id="folderModalTitle">New Folder</h2>
             <form id="folderForm">
                 <div class="form-group">
-                    <label for="folderName">目录名称:</label>
+                    <label for="folderName">Folder Name:</label>
                     <input type="text" id="folderName" required>
                 </div>
                 <div class="form-group">
-                    <label for="folderDescription">描述:</label>
+                    <label for="folderDescription">Description:</label>
                     <textarea id="folderDescription" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">保存</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('folderModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('folderModal')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -70,23 +73,23 @@
     <div id="commandModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2 id="commandModalTitle">新建命令</h2>
+            <h2 id="commandModalTitle">New Command</h2>
             <form id="commandForm">
                 <div class="form-group">
-                    <label for="commandName">命令名称:</label>
+                    <label for="commandName">Command Name:</label>
                     <input type="text" id="commandName" required>
                 </div>
                 <div class="form-group">
-                    <label for="commandContent">命令内容:</label>
+                    <label for="commandContent">Command Content:</label>
                     <textarea id="commandContent" rows="6" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="commandDescription">描述:</label>
+                    <label for="commandDescription">Description:</label>
                     <textarea id="commandDescription" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">保存</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('commandModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('commandModal')">Cancel</button>
                 </div>
             </form>
         </div>

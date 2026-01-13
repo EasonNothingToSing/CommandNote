@@ -11,6 +11,7 @@
     --success-color: #52c41a;
     --warning-color: #faad14;
     --danger-color: #f5222d;
+    --info-color: #1890ff;
     --bg-color: #f5f5f5;
     --sidebar-bg: #ffffff;
     --content-bg: #ffffff;
@@ -241,6 +242,11 @@ body {
 .btn-secondary {
     background-color: #d9d9d9;
     color: var(--text-color);
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    color: white;
 }
 
 /* 模态框样式 */

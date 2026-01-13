@@ -51,6 +51,18 @@ function bindEvents() {
         }
     });
 
+    // Get button
+    document.getElementById('getBtn').addEventListener('click', async () => {
+        if (!currentNode || currentNode.node_type !== 'command') return;
+        await copyCommandToClipboard(currentNode.content);
+    });
+
+    // Duplicate button
+    document.getElementById('duplicateBtn').addEventListener('click', async () => {
+        if (!currentNode || currentNode.node_type !== 'command') return;
+        await duplicateCommand(currentNode.id);
+    });
+
     // Delete button
     document.getElementById('deleteBtn').addEventListener('click', async () => {
         if (!currentNode) return;
@@ -214,11 +226,13 @@ async function displayNodeContent(node) {
     }
 }
 
-// 更新操作按钮状态
+// Update action buttons state
 function updateActionButtons() {
     const editBtn = document.getElementById('editBtn');
     const deleteBtn = document.getElementById('deleteBtn');
     const addCommandBtn = document.getElementById('addCommandBtn');
+    const getBtn = document.getElementById('getBtn');
+    const duplicateBtn = document.getElementById('duplicateBtn');
 
     if (currentNode) {
         editBtn.style.display = 'inline-block';
@@ -226,13 +240,19 @@ function updateActionButtons() {
         
         if (currentNode.node_type === 'folder') {
             addCommandBtn.style.display = 'inline-block';
+            getBtn.style.display = 'none';
+            duplicateBtn.style.display = 'none';
         } else {
             addCommandBtn.style.display = 'none';
+            getBtn.style.display = 'inline-block';
+            duplicateBtn.style.display = 'inline-block';
         }
     } else {
         editBtn.style.display = 'none';
         deleteBtn.style.display = 'none';
         addCommandBtn.style.display = 'none';
+        getBtn.style.display = 'none';
+        duplicateBtn.style.display = 'none';
     }
 }
 
@@ -457,6 +477,46 @@ function displaySearchResults(results, keyword) {
     `;
 
     contentArea.innerHTML = html;
+}
+
+// Copy command to clipboard
+async function copyCommandToClipboard(content) {
+    try {
+        await navigator.clipboard.writeText(content);
+        showSuccess('Command copied to clipboard!');
+    } catch (error) {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = content;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showSuccess('Command copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            showError('Failed to copy command');
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+// Duplicate command
+async function duplicateCommand(nodeId) {
+    try {
+        const result = await pywebview.api.duplicate_node(nodeId);
+        if (result.success) {
+            await loadTree();
+            showSuccess('Command duplicated successfully');
+        } else {
+            showError(result.error || 'Duplication failed');
+        }
+    } catch (error) {
+        console.error('Duplication failed:', error);
+        showError('Duplication failed');
+    }
 }
 
 // Utility functions
