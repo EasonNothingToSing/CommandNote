@@ -49,13 +49,13 @@ wheels = [
 [[package]]
 name = "commandnote"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "pywebview" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pywebview", specifier = ">=6.1" }]
+requires-dist = [{ name = "pywebview", specifier = ">=5.0" }]
 
 [[package]]
 name = "packaging"
