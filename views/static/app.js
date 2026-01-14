@@ -5,6 +5,7 @@ let currentNode = null;
 let currentParentId = null;
 let isEditing = false;
 let editingNodeId = null;
+let expandedNodeIds = new Set(); // Track which folders are expanded
 
 // Initialize after page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +30,8 @@ async function initApp() {
 function bindEvents() {
     // New folder button
     document.getElementById('addFolderBtn').addEventListener('click', () => {
+        // Create top-level folder if no folder is selected
+        currentParentId = null;
         openFolderModal();
     });
 
@@ -93,27 +96,47 @@ function bindEvents() {
         });
     });
 
-    // 目录表单提交
+    // Folder form submission
     document.getElementById('folderForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         await saveFolderForm();
     });
 
-    // 命令表单提交
+    // Command form submission
     document.getElementById('commandForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         await saveCommandForm();
     });
+
+    // Tree view drop area for top-level folders
+    const treeView = document.getElementById('treeView');
+    treeView.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        treeView.classList.add('drag-over-empty');
+    });
+
+    treeView.addEventListener('dragleave', (e) => {
+        if (e.target === treeView) {
+            treeView.classList.remove('drag-over-empty');
+        }
+    });
+
+    treeView.addEventListener('drop', handleTreeViewDrop);
 }
 
-// 加载树状结构
+// Load tree structure
 async function loadTree() {
     try {
+        // Save current expanded state before reloading
+        saveExpandedState();
         const tree = await pywebview.api.get_tree();
         renderTree(tree);
+        // Restore expanded state after rendering
+        restoreExpandedState();
     } catch (error) {
-        console.error('加载树失败:', error);
-        showError('加载数据失败');
+        console.error('Failed to load tree:', error);
+        showError('Failed to load data');
     }
 }
 
@@ -139,10 +162,29 @@ function renderTree(node, parentElement = null, level = 0) {
     nodeDiv.setAttribute('data-node-id', node.id);
     nodeDiv.setAttribute('data-node-type', node.node_type);
     
-    const icon = node.node_type === 'folder' ? '📁' : '📝';
-    nodeDiv.innerHTML = `<span class="icon">${icon}</span>${node.name}`;
+    // Add collapse/expand button for folders with children
+    let toggleButton = '';
+    const isExpanded = expandedNodeIds.has(node.id);
+    if (node.node_type === 'folder' && node.children && node.children.length > 0) {
+        const arrowIcon = isExpanded ? '▼' : '▶';
+        toggleButton = `<span class="toggle-btn" data-expanded="${isExpanded}">${arrowIcon}</span>`;
+    } else if (node.node_type === 'folder') {
+        toggleButton = `<span class="toggle-btn empty">•</span>`;
+    }
     
-    // Click event
+    const icon = node.node_type === 'folder' ? '📁' : '📝';
+    nodeDiv.innerHTML = `${toggleButton}<span class="icon">${icon}</span>${node.name}`;
+    
+    // Click event for toggle button
+    const toggleBtn = nodeDiv.querySelector('.toggle-btn');
+    if (toggleBtn && !toggleBtn.classList.contains('empty')) {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNodeChildren(nodeDiv, node);
+        });
+    }
+    
+    // Click event for node selection
     nodeDiv.addEventListener('click', (e) => {
         e.stopPropagation();
         selectNode(node);
@@ -157,12 +199,72 @@ function renderTree(node, parentElement = null, level = 0) {
 
     parentElement.appendChild(nodeDiv);
 
-    // Recursively render child nodes
+    // Recursively render child nodes only if folder is expanded
     if (node.node_type === 'folder' && node.children.length > 0) {
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'children-container';
+        childrenContainer.setAttribute('data-parent-id', node.id);
+        
+        // Apply collapsed state if not expanded
+        if (!isExpanded) {
+            childrenContainer.classList.add('collapsed');
+        }
+        
         node.children.forEach(child => {
-            renderTree(child, parentElement, level + 1);
+            renderTree(child, childrenContainer, level + 1);
         });
+        
+        parentElement.appendChild(childrenContainer);
     }
+}
+
+// Toggle children visibility
+function toggleNodeChildren(nodeElement, node) {
+    const toggleBtn = nodeElement.querySelector('.toggle-btn');
+    if (!toggleBtn) return;
+    
+    // Find the children container
+    let childrenContainer = nodeElement.nextElementSibling;
+    while (childrenContainer && !childrenContainer.classList.contains('children-container')) {
+        childrenContainer = childrenContainer.nextElementSibling;
+    }
+    
+    if (!childrenContainer) return;
+    
+    const isExpanded = toggleBtn.getAttribute('data-expanded') === 'true';
+    
+    if (isExpanded) {
+        // Collapse
+        childrenContainer.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+        toggleBtn.setAttribute('data-expanded', 'false');
+        expandedNodeIds.delete(node.id);
+    } else {
+        // Expand
+        childrenContainer.classList.remove('collapsed');
+        toggleBtn.textContent = '▼';
+        toggleBtn.setAttribute('data-expanded', 'true');
+        expandedNodeIds.add(node.id);
+    }
+}
+
+// Save current expanded state
+function saveExpandedState() {
+    expandedNodeIds.clear();
+    document.querySelectorAll('.toggle-btn[data-expanded="true"]').forEach(toggleBtn => {
+        const nodeElement = toggleBtn.closest('.tree-node');
+        if (nodeElement) {
+            const nodeId = nodeElement.getAttribute('data-node-id');
+            if (nodeId) {
+                expandedNodeIds.add(nodeId);
+            }
+        }
+    });
+}
+
+// Restore expanded state after rendering
+function restoreExpandedState() {
+    // The state is automatically restored during renderTree() by checking expandedNodeIds
 }
 
 // Select node
@@ -215,20 +317,20 @@ async function displayNodeContent(node) {
                 <h2>📝 ${node.name}</h2>
                 ${node.description ? `
                     <div class="info-group">
-                        <div class="info-label">描述</div>
+                        <div class="info-label">Description</div>
                         <div class="info-content">${node.description}</div>
                     </div>
                 ` : ''}
                 <div class="info-group">
-                    <div class="info-label">命令内容</div>
+                    <div class="info-label">Command Content</div>
                     <div class="info-content command-code">${node.content}</div>
                 </div>
                 <div class="info-group">
-                    <div class="info-label">创建时间</div>
+                    <div class="info-label">Created At</div>
                     <div class="info-content">${formatDate(node.created_at)}</div>
                 </div>
                 <div class="info-group">
-                    <div class="info-label">更新时间</div>
+                    <div class="info-label">Updated At</div>
                     <div class="info-content">${formatDate(node.updated_at)}</div>
                 </div>
             </div>
@@ -347,11 +449,24 @@ async function saveFolderForm() {
             }
         } else {
             // Create
-            const parentId = currentNode ? currentNode.id : (await pywebview.api.get_tree()).id;
+            let parentId;
+            if (currentParentId) {
+                // Explicitly set parent (top-level)
+                parentId = currentParentId;
+            } else if (currentNode && currentNode.node_type === 'folder') {
+                // Use selected folder as parent
+                parentId = currentNode.id;
+            } else {
+                // Use root as parent (top-level)
+                const tree = await pywebview.api.get_tree();
+                parentId = tree.id;
+            }
+            
             const result = await pywebview.api.create_folder(parentId, name, description);
             if (result.success) {
                 closeModal('folderModal');
                 await loadTree();
+                currentParentId = null; // Reset parent flag
                 showSuccess('Folder created successfully');
             } else {
                 showError(result.error || 'Creation failed');
@@ -415,22 +530,22 @@ async function deleteNode(nodeId) {
             await loadTree();
             document.getElementById('contentArea').innerHTML = `
                 <div class="welcome-message">
-                    <h2>已删除</h2>
-                    <p>请选择其他项目查看</p>
+                    <h2>Item Deleted</h2>
+                    <p>Please select another item to view</p>
                 </div>
             `;
             updateActionButtons();
-            showSuccess('删除成功');
+            showSuccess('Item deleted successfully');
         } else {
-            showError(result.error || '删除失败');
+            showError(result.error || 'Failed to delete item');
         }
     } catch (error) {
-        console.error('删除失败:', error);
-        showError('删除失败');
+        console.error('Delete failed:', error);
+        showError('Failed to delete item');
     }
 }
 
-// 执行搜索
+// Perform search
 async function performSearch() {
     const keyword = document.getElementById('searchInput').value.trim();
     if (!keyword) {
@@ -442,8 +557,8 @@ async function performSearch() {
         const results = await pywebview.api.search(keyword);
         displaySearchResults(results, keyword);
     } catch (error) {
-        console.error('搜索失败:', error);
-        showError('搜索失败');
+        console.error('Search failed:', error);
+        showError('Search failed');
     }
 }
 
@@ -610,6 +725,55 @@ async function handleDrop(e) {
     targetNode.classList.remove('drag-over');
 }
 
+// Handle drop on tree view empty area to create top-level folder
+async function handleTreeViewDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const treeView = document.getElementById('treeView');
+    treeView.classList.remove('drag-over-empty');
+    
+    if (!draggedNode) return;
+    
+    const draggedNodeId = draggedNode.getAttribute('data-node-id');
+    const draggedNodeType = draggedNode.getAttribute('data-node-type');
+    
+    // Only allow moving folders to top level, not commands
+    if (draggedNodeType === 'command') {
+        showError('Can only move folders to top level');
+        draggedNode = null;
+        return;
+    }
+    
+    try {
+        // Get root node ID
+        const tree = await pywebview.api.get_tree();
+        const rootId = tree.id;
+        
+        // Check if already at top level
+        const draggedNodeData = await pywebview.api.get_node(draggedNodeId);
+        if (draggedNodeData && draggedNodeData.parent_id === rootId) {
+            showInfo('Folder is already at top level');
+            draggedNode = null;
+            return;
+        }
+        
+        // Move to root (top level)
+        const result = await pywebview.api.move_node(draggedNodeId, rootId);
+        if (result.success) {
+            await loadTree();
+            showSuccess('Folder moved to top level');
+        } else {
+            showError(result.error || 'Failed to move folder');
+        }
+    } catch (error) {
+        console.error('Move to top level failed:', error);
+        showError('Failed to move folder to top level');
+    }
+    
+    draggedNode = null;
+}
+
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('en-US');
@@ -621,6 +785,10 @@ function showError(message) {
 
 function showSuccess(message) {
     showNotification(message, 'success', '✅');
+}
+
+function showInfo(message) {
+    showNotification(message, 'info', 'ℹ️');
 }
 
 function showNotification(message, type = 'info', icon = 'ℹ️') {

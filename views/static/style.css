@@ -88,6 +88,13 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    transition: background-color 0.2s;
+}
+
+.tree-view.drag-over-empty {
+    background-color: #e6f7ff;
+    border: 2px dashed var(--primary-color);
+    border-radius: 4px;
 }
 
 .tree-node {
@@ -97,6 +104,9 @@ body {
     border-radius: 4px;
     transition: background-color 0.2s;
     user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .tree-node:hover {
@@ -119,6 +129,41 @@ body {
 
 .tree-node .icon {
     margin-right: 8px;
+}
+
+.tree-node .toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.tree-node .toggle-btn:hover {
+    opacity: 0.7;
+}
+
+.tree-node .toggle-btn.empty {
+    cursor: default;
+    opacity: 0;
+}
+
+/* Container for children nodes */
+.children-container {
+    display: flex;
+    flex-direction: column;
+    transition: max-height 0.3s ease;
+    max-height: 100%;
+}
+
+.children-container.collapsed {
+    max-height: 0;
+    overflow: hidden;
 }
 
 /* 主内容区样式 */
