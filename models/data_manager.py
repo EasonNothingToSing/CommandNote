@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 from typing import Optional, List
 from pathlib import Path
 from .command_node import CommandNode
@@ -15,12 +16,18 @@ class DataManager:
         Initialize data manager
         
         Args:
-            data_file: Data file path, defaults to data/commands.json in project directory
+            data_file: Data file path, defaults to data/commands.json next to executable or project directory
         """
         if data_file is None:
-            # Get project root directory
-            project_root = Path(__file__).parent.parent
-            data_dir = project_root / "data"
+            # Check if running as executable (bundled by PyInstaller)
+            if getattr(sys, 'frozen', False):
+                # Running as exe, use the directory containing the exe
+                base_dir = Path(sys.executable).parent
+            else:
+                # Running as script, use project root directory
+                base_dir = Path(__file__).parent.parent
+            
+            data_dir = base_dir / "data"
             data_dir.mkdir(exist_ok=True)
             data_file = str(data_dir / "commands.json")
         

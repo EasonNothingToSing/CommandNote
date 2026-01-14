@@ -81,7 +81,7 @@ class WebViewApp:
         # Get HTML file path
         html_path = Path(__file__).parent / "static" / "index.html"
         
-        # Create window
+        # Create and start window
         self.window = webview.create_window(
             title="CommandNote - Command Note Tool",
             url=str(html_path),
@@ -92,4 +92,4 @@ class WebViewApp:
         )
         
         # Start application
-        webview.start(debug=True)
+        webview.start(debug=False)

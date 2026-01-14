@@ -16,23 +16,23 @@ class CommandController:
     
     def get_tree_structure(self) -> Dict[str, Any]:
         """
-        获取完整树状结构
+        Get complete tree structure
         
         Returns:
-            树状结构的字典表示
+            Dictionary representation of tree structure
         """
         root = self.data_manager.get_root()
         return root.to_dict()
     
     def get_node_by_id(self, node_id: str) -> Optional[Dict[str, Any]]:
         """
-        根据ID获取节点信息
+        Get node information by ID
         
         Args:
-            node_id: 节点ID
+            node_id: Node ID
         
         Returns:
-            节点信息字典，或None
+            Node information dictionary, or None
         """
         node = self.data_manager.find_node_by_id(node_id)
         if node:
@@ -41,13 +41,13 @@ class CommandController:
     
     def get_children(self, node_id: str) -> List[Dict[str, Any]]:
         """
-        获取指定节点的所有子节点
+        Get all child nodes of a specified node
         
         Args:
-            node_id: 父节点ID
+            node_id: Parent node ID
         
         Returns:
-            子节点列表
+            List of child nodes
         """
         node = self.data_manager.find_node_by_id(node_id)
         if node:
@@ -145,20 +145,20 @@ class CommandController:
     
     def update_node(self, node_id: str, name: str = None, content: str = None, description: str = None) -> Dict[str, Any]:
         """
-        更新节点信息
+        Update node information
         
         Args:
-            node_id: 节点ID
-            name: 新名称（可选）
-            content: 新内容（可选，仅命令节点）
-            description: 新描述（可选）
+            node_id: Node ID
+            name: New name (optional)
+            content: New content (optional, for command nodes only)
+            description: New description (optional)
         
         Returns:
-            更新后的节点信息
+            Updated node information
         """
         node = self.data_manager.find_node_by_id(node_id)
         if not node:
-            raise ValueError(f"节点不存在: {node_id}")
+            raise ValueError(f"Node does not exist: {node_id}")
         
         if name is not None:
             node.name = name
@@ -174,24 +174,24 @@ class CommandController:
         
         return node.to_dict()
     
-    # ========== 删除操作 ==========
+    # ========== Delete Operations ==========
     
     def delete_node(self, node_id: str) -> bool:
         """
-        删除节点
+        Delete node
         
         Args:
-            node_id: 要删除的节点ID
+            node_id: ID of node to delete
         
         Returns:
-            是否删除成功
+            Whether deletion was successful
         """
-        # 不能删除根节点
+        # Cannot delete root node
         root = self.data_manager.get_root()
         if root.id == node_id:
-            raise ValueError("不能删除根节点")
+            raise ValueError("Cannot delete root node")
         
-        # 找到节点的父节点并删除
+        # Find node's parent and delete
         all_nodes = self.data_manager.get_all_nodes()
         for node in all_nodes:
             if node.is_folder():

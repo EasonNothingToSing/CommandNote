@@ -135,14 +135,25 @@ function renderTree(node, parentElement = null, level = 0) {
     const nodeDiv = document.createElement('div');
     nodeDiv.className = `tree-node ${node.node_type}`;
     nodeDiv.style.paddingLeft = `${level * 16}px`;
+    nodeDiv.setAttribute('draggable', 'true');
+    nodeDiv.setAttribute('data-node-id', node.id);
+    nodeDiv.setAttribute('data-node-type', node.node_type);
     
     const icon = node.node_type === 'folder' ? '📁' : '📝';
     nodeDiv.innerHTML = `<span class="icon">${icon}</span>${node.name}`;
     
+    // Click event
     nodeDiv.addEventListener('click', (e) => {
         e.stopPropagation();
         selectNode(node);
     });
+    
+    // Drag events
+    nodeDiv.addEventListener('dragstart', handleDragStart);
+    nodeDiv.addEventListener('dragend', handleDragEnd);
+    nodeDiv.addEventListener('dragover', handleDragOver);
+    nodeDiv.addEventListener('dragleave', handleDragLeave);
+    nodeDiv.addEventListener('drop', handleDrop);
 
     parentElement.appendChild(nodeDiv);
 
@@ -520,15 +531,115 @@ async function duplicateCommand(nodeId) {
 }
 
 // Utility functions
+let draggedNode = null;
+
+function handleDragStart(e) {
+    draggedNode = e.currentTarget;
+    draggedNode.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedNode.getAttribute('data-node-id'));
+}
+
+function handleDragEnd(e) {
+    draggedNode.classList.remove('dragging');
+    document.querySelectorAll('.tree-node.drag-over').forEach(node => {
+        node.classList.remove('drag-over');
+    });
+    draggedNode = null;
+}
+
+function handleDragOver(e) {
+    if (draggedNode === e.currentTarget) return;
+    
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetNode = e.currentTarget;
+    const targetType = targetNode.getAttribute('data-node-type');
+    
+    // Only folders can accept dropped items
+    if (targetType === 'folder') {
+        targetNode.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    if (e.currentTarget === e.target) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const targetNode = e.currentTarget;
+    const targetType = targetNode.getAttribute('data-node-type');
+    const targetNodeId = targetNode.getAttribute('data-node-id');
+    
+    // Only folders can accept dropped items
+    if (targetType !== 'folder') {
+        targetNode.classList.remove('drag-over');
+        showError('Can only move items to folders');
+        return;
+    }
+    
+    if (!draggedNode) return;
+    
+    const draggedNodeId = draggedNode.getAttribute('data-node-id');
+    
+    // Prevent dragging a node onto itself
+    if (draggedNodeId === targetNodeId) {
+        targetNode.classList.remove('drag-over');
+        return;
+    }
+    
+    try {
+        const result = await pywebview.api.move_node(draggedNodeId, targetNodeId);
+        if (result.success) {
+            await loadTree();
+            showSuccess('Item moved successfully');
+        } else {
+            showError(result.error || 'Failed to move item');
+        }
+    } catch (error) {
+        console.error('Move failed:', error);
+        showError('Failed to move item');
+    }
+    
+    targetNode.classList.remove('drag-over');
+}
+
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('en-US');
 }
 
 function showError(message) {
-    alert('❌ ' + message);
+    showNotification(message, 'error', '❌');
 }
 
 function showSuccess(message) {
-    alert('✅ ' + message);
+    showNotification(message, 'success', '✅');
+}
+
+function showNotification(message, type = 'info', icon = 'ℹ️') {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    notification.innerHTML = `
+        <div class="notification-icon">${icon}</div>
+        <div class="notification-message">${message}</div>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.add('fadeOut');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
 }
