@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pywebview>=5.0",
-    "pillow>=10.0.0",
     "pyinstaller>=6.18.0",
 ]
 
