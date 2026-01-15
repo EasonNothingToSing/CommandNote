@@ -194,6 +194,14 @@ function renderTree(node, parentElement = null, level = 0) {
         selectNode(node);
     });
     
+    // Double-click event for folder expansion/collapse
+    if (node.node_type === 'folder' && node.children && node.children.length > 0) {
+        nodeDiv.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            toggleNodeChildren(nodeDiv, node);
+        });
+    }
+    
     // Drag events
     nodeDiv.addEventListener('dragstart', handleDragStart);
     nodeDiv.addEventListener('dragend', handleDragEnd);
