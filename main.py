@@ -4,11 +4,14 @@ Desktop application built with MVC architecture using PyWebView
 """
 
 from views import WebViewApp
+from config import optimize_startup
 
 
 def main():
     """Main entry point"""
-    print("Starting CommandNote application...")
+    # Optimize startup and suppress warnings
+    optimize_startup()
+    
     app = WebViewApp()
     app.run()
 
