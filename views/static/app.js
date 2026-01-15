@@ -126,10 +126,14 @@ function bindEvents() {
 }
 
 // Load tree structure
-async function loadTree() {
+async function loadTree(expandNodeId = null) {
     try {
         // Save current expanded state before reloading
         saveExpandedState();
+        // If a node should be expanded, add it to the set
+        if (expandNodeId) {
+            expandedNodeIds.add(expandNodeId);
+        }
         const tree = await pywebview.api.get_tree();
         renderTree(tree);
         // Restore expanded state after rendering
@@ -465,7 +469,8 @@ async function saveFolderForm() {
             const result = await pywebview.api.create_folder(parentId, name, description);
             if (result.success) {
                 closeModal('folderModal');
-                await loadTree();
+                // Reload tree and expand parent folder
+                await loadTree(parentId);
                 currentParentId = null; // Reset parent flag
                 showSuccess('Folder created successfully');
             } else {
@@ -509,7 +514,8 @@ async function saveCommandForm() {
             const result = await pywebview.api.create_command(currentNode.id, name, content, description);
             if (result.success) {
                 closeModal('commandModal');
-                await loadTree();
+                // Reload tree and expand parent folder
+                await loadTree(currentNode.id);
                 showSuccess('Command created successfully');
             } else {
                 showError(result.error || 'Creation failed');
